@@ -1,14 +1,15 @@
-Real-Time Chat Application (Backend)
+**Real-Time Chat Application (Backend)**
 
 A backend service for a real-time chat application built with Node.js, Express, and MongoDB.
 This project demonstrates authentication, authorization, clean architecture, and real-time communication.
 
-Project Purpose
+**Project Purpose**
 
 This project is developed as a Graduation Project to demonstrate full-stack development skills including backend API design, authentication, database modeling, and real-time communication.
 
-Tech Stack
-Backend
+**Tech Stack**
+
+**Backend**
 
 Node.js
 
@@ -18,24 +19,25 @@ MongoDB
 
 Mongoose
 
-Authentication
+**Authentication**
 
 JWT (JSON Web Token)
 
 bcrypt (Password Hashing)
 
-Real-Time Communication
+**Real-Time Communication**
 
 Socket.io
 
-Tools
+**Tools**
 
 Postman (API Testing)
 
 MongoDB Compass
 
-Features
-Authentication
+**Features**
+
+**Authentication**
 
 User Registration
 
@@ -45,11 +47,13 @@ Password hashing using bcrypt
 
 JWT authentication
 
-Authorization
+
+**Authorization**
 
 Role-based access (Admin / User)
 
-Chat Features
+
+**Chat Features**
 
 One-to-one messaging
 
@@ -59,7 +63,8 @@ Message history
 
 Online / Offline status
 
-Backend Architecture
+
+**Backend Architecture**
 
 MVC structure
 
