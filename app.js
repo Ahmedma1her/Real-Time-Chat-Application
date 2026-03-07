@@ -30,12 +30,12 @@ app.use(express.json());
 
 
 // Routes
-const router=require("./routes/authRoutes")
-app.use("/api/auth",router );
+const authRouter=require("./routes/authRoutes")
 
+const messageRouter = require("./routes/messageRoutes");
 
-
-
+app.use("/api/auth", authRouter);
+app.use("/api/messages", messageRouter);
 
 
 
