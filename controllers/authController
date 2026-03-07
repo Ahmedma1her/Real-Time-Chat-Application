@@ -1,17 +1,15 @@
 const User = require("../models/Users"); 
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "3d" });
-};
+const { generateToken } = require("../middleware/authMiddleware");
+const registerSchema = require("../controllers/validation/registerValidation");
 
 // Register
 const registerUser = async (req, res) => {
   try {
+    //Validate input
+    const { error } = registerSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.details[0].message });
     const { username, email, password } = req.body;
-    if (!username || !email || !password)
-      return res.status(400).json({ message: "All fields are required" });
 
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: "User already exists" });
@@ -22,10 +20,9 @@ const registerUser = async (req, res) => {
 
     res.status(201).json({
       _id: user._id,
-      success:true,
+      success: true,
       username: user.username,
       email: user.email,
-      token: generateToken(user._id),
     });
   } catch (error) {
     console.error(error);
