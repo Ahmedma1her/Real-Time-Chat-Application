@@ -1,21 +1,27 @@
 const Message = require("../models/message");
 const Conversation = require("../models/Conversation");
 const User = require("../models/Users");
+const { sendMessageSchema } = require("./validation/messageValidation");
 
 // Send a message
 const sendMessage = async (req, res) => {
   try {
+    // Validate input
+    const { error } = sendMessageSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.details[0].message });
+
     const { receiverId, content } = req.body;
     const senderId = req.user._id;
-
-    if (!receiverId || !content) {
-      return res.status(400).json({ message: "Receiver and content required" });
-    }
 
     // Check if receiver exists
     const receiver = await User.findById(receiverId);
     if (!receiver) {
       return res.status(404).json({ message: "Receiver not found" });
+    }
+
+    // Prevent sending message to yourself
+    if (senderId.toString() === receiverId) {
+      return res.status(400).json({ message: "Cannot send message to yourself" });
     }
 
     // Find or create conversation
@@ -45,25 +51,7 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// Get all conversations for logged-in user
-const getConversations = async (req, res) => {
-  try {
-    const userId = req.user._id;
-
-    const conversations = await Conversation.find({
-      participants: userId
-    })
-      .populate("participants", "username email isOnline")
-      .sort({ updatedAt: -1 });
-
-    res.json(conversations);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get messages in a conversation with specific user
+// Get messages with specific user (backward compatibility)
 const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -92,4 +80,36 @@ const getMessages = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage, getConversations, getMessages };
+// Mark messages as read (backward compatibility)
+const markAsRead = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user._id;
+
+    const participantIds = [currentUserId, userId].sort();
+    const conversation = await Conversation.findOne({
+      participants: { $all: participantIds }
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    await Message.updateMany(
+      {
+        conversationId: conversation._id,
+        receiver: currentUserId,
+        sender: userId,
+        isRead: false
+      },
+      { isRead: true }
+    );
+
+    res.json({ message: "Messages marked as read" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { sendMessage, getMessages, markAsRead };

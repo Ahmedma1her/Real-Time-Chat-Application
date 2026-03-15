@@ -1,14 +1,13 @@
 const express = require("express");
 const router = express.Router();
-
-const { sendMessage, getConversations, getMessages } = require("../controllers/messageController");
 const { authenticate } = require("../middleware/authMiddleware");
+const { sendMessage, getMessages, markAsRead } = require("../controllers/messageController");
 
-
-
-// All routes are protected with authenticate middleware
+// Send message
 router.post("/send", authenticate, sendMessage);
-router.get("/conversations", authenticate, getConversations);
+
+// Backward compatibility routes
 router.get("/:userId", authenticate, getMessages);
+router.put("/read/:userId", authenticate, markAsRead);
 
 module.exports = router;

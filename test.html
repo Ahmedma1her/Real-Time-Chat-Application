@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Test</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>Socket.io Test</h2>
+  
+  <input id="token" placeholder="Paste JWT token" style="width:400px"/><br/>
+  <button onclick="connect()">Connect</button>
+  <hr/>
+  
+  <input id="receiverId" placeholder="Receiver ID"/>
+  <input id="message" placeholder="Message"/>
+  <button onclick="sendMsg()">Send</button>
+  <hr/>
+  
+  <div id="log"></div>
+
+  <script>
+    let socket;
+    
+    function connect() {
+      const token = document.getElementById('token').value;
+      socket = io('http://localhost:3000', {
+        auth: { token }
+      });
+      
+      socket.on('connect', () => log('✅ Connected!'));
+      socket.on('onlineUsers', (users) => log('Online users: ' + users));
+      socket.on('receiveMessage', (msg) => log('📩 Received: ' + JSON.stringify(msg)));
+      socket.on('messageSent', (msg) => log('✅ Sent: ' + JSON.stringify(msg)));
+      socket.on('error', (err) => log('❌ Error: ' + err.message));
+    }
+    
+    function sendMsg() {
+      const receiverId = document.getElementById('receiverId').value;
+      const content = document.getElementById('message').value;
+      socket.emit('sendMessage', { receiverId, content });
+    }
+    
+    function log(msg) {
+      document.getElementById('log').innerHTML += msg + '<br/>';
+    }
+  </script>
+</body>
+</html>

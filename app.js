@@ -2,56 +2,59 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const PORT = process.env.PORT || 8000;
+const http = require("http");
+const { Server } = require("socket.io");
+const PORT = process.env.PORT || 3000;
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 
-
-// DB
 const mongoose = require("mongoose");
-
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.DB_URL);
     console.log("MongoDB connected");
   } catch (error) {
     console.error(error);
-   
   }
 };
 connectDB();
 
-// middlewares
 app.use(cors());
-// added cors as it enables the backend to receive requests from different origins (frontend server)// still need to search more about it but understood the concept
 app.use(express.json());
 
-
-
-
-// Routes
-const authRouter=require("./routes/authRoutes")
-
+const authRouter = require("./routes/authRoutes");
 const messageRouter = require("./routes/messageRoutes");
+const userRouter = require("./routes/userRoutes");
+const conversationRouter = require("./routes/conversationRoutes");
 
 app.use("/api/auth", authRouter);
 app.use("/api/messages", messageRouter);
+app.use("/api/users", userRouter);
+app.use("/api/conversations", conversationRouter);
+
+// Socket.io connection
+const socketHandler = require("./socket/socketHandler");
+socketHandler(io);
+
+// 404 handler 
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// Global error handler 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!" });
+});
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
