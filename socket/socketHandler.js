@@ -30,7 +30,8 @@ module.exports = (io) => {
     console.log(`✅ User connected: ${userId} | Socket ID: ${socket.id}`);
 
     // 1. Add user to onlineUsers
-    onlineUsers[userId] = socket.id;
+   onlineUsers[userId] = onlineUsers[userId] || new Set();
+  onlineUsers[userId].add(socket.id);
     console.log(`📊 Online users:`, Object.keys(onlineUsers));
 
     // 2. Update isOnline in DB
@@ -71,12 +72,13 @@ module.exports = (io) => {
         const populatedMessage = await message.populate("sender", "username");
 
         // Send to receiver if online
-        const receiverSocketId = onlineUsers[receiverId];
-        console.log(`🔍 Looking for receiver ${receiverId}, socket: ${receiverSocketId}`);
-        
-        if (receiverSocketId) {
-          console.log(`📨 Sending to receiver socket: ${receiverSocketId}`);
-          io.to(receiverSocketId).emit("receiveMessage", populatedMessage);
+       const receiverSockets = onlineUsers[receiverId];
+        if (receiverSockets) {
+         for (const id of receiverSockets) {
+         io.to(id).emit("receiveMessage", populatedMessage);
+  }
+
+
         } else {
           console.log(`⚠️ Receiver ${receiverId} is offline`);
         }
@@ -111,8 +113,14 @@ module.exports = (io) => {
       console.log(`❌ User disconnected: ${userId}`);
 
       // Remove from onlineUsers
+      onlineUsers[userId]?.delete(socket.id);
+
+      if (onlineUsers[userId]?.size === 0) {
       delete onlineUsers[userId];
-      console.log(`📊 Online users after disconnect:`, Object.keys(onlineUsers));
+      await User.findByIdAndUpdate(userId, { isOnline: false });
+  io.emit("userOffline", userId);
+}
+
 
       // Update isOnline in DB
       await User.findByIdAndUpdate(userId, { isOnline: false });
