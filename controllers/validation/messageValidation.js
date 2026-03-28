@@ -1,5 +1,6 @@
 const joi = require("joi");
 
+// Validate the payload before creating a message.
 const sendMessageSchema = joi.object({
   receiverId: joi.string().required().messages({
     'string.empty': 'Receiver ID is required',
