@@ -18,7 +18,7 @@ module.exports = (io) => {
       const user = await User.findById(decoded.id).select("-password");
       if (!user) return next(new Error("User not found"));
 
-      socket.user = user;  // Attach user to socket
+      socket.user = user;
       next();
     } catch (error) {
       next(new Error("Invalid token"));
@@ -27,10 +27,11 @@ module.exports = (io) => {
 
   io.on("connection", async (socket) => {
     const userId = socket.user._id.toString();
-    console.log(`User connected: ${userId}`);
+    console.log(`✅ User connected: ${userId} | Socket ID: ${socket.id}`);
 
     // 1. Add user to onlineUsers
     onlineUsers[userId] = socket.id;
+    console.log(`📊 Online users:`, Object.keys(onlineUsers));
 
     // 2. Update isOnline in DB
     await User.findByIdAndUpdate(userId, { isOnline: true });
@@ -38,12 +39,14 @@ module.exports = (io) => {
     // 3. Broadcast online status to everyone
     io.emit("userOnline", userId);
 
-    // 4. Send current online users to connected user
-    socket.emit("onlineUsers", Object.keys(onlineUsers));
+    // 4. Send current online users to EVERYONE (not just the new user)
+    io.emit("onlineUsers", Object.keys(onlineUsers));  // 
 
     // ─── Send Message ───────────────────────────────────────
     socket.on("sendMessage", async ({ receiverId, content }) => {
       try {
+        console.log(`📤 Message from ${userId} to ${receiverId}: "${content}"`);
+
         // Find or create conversation
         const participantIds = [userId, receiverId].sort();
         let conversation = await Conversation.findOne({
@@ -69,14 +72,21 @@ module.exports = (io) => {
 
         // Send to receiver if online
         const receiverSocketId = onlineUsers[receiverId];
+        console.log(`🔍 Looking for receiver ${receiverId}, socket: ${receiverSocketId}`);
+        
         if (receiverSocketId) {
+          console.log(`📨 Sending to receiver socket: ${receiverSocketId}`);
           io.to(receiverSocketId).emit("receiveMessage", populatedMessage);
+        } else {
+          console.log(`⚠️ Receiver ${receiverId} is offline`);
         }
 
         // Send back to sender as confirmation
         socket.emit("messageSent", populatedMessage);
+        console.log(`✅ Message sent confirmation to sender`);
 
       } catch (error) {
+        console.error(`❌ Error sending message:`, error);
         socket.emit("error", { message: "Failed to send message" });
       }
     });
@@ -98,16 +108,20 @@ module.exports = (io) => {
 
     // ─── Disconnect ─────────────────────────────────────────
     socket.on("disconnect", async () => {
-      console.log(`User disconnected: ${userId}`);
+      console.log(`❌ User disconnected: ${userId}`);
 
       // Remove from onlineUsers
       delete onlineUsers[userId];
+      console.log(`📊 Online users after disconnect:`, Object.keys(onlineUsers));
 
       // Update isOnline in DB
       await User.findByIdAndUpdate(userId, { isOnline: false });
 
       // Broadcast offline status
       io.emit("userOffline", userId);
+      
+      // Broadcast updated online users list to everyone
+      io.emit("onlineUsers", Object.keys(onlineUsers));  
     });
   });
 };

@@ -1,48 +1,439 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Socket Test</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App Test</title>
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 90%;
+      max-width: 1000px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .connection-section {
+      padding: 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .connection-section input {
+      width: 60%;
+      padding: 10px;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+
+    .connection-section button {
+      padding: 10px 30px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .connection-section button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+
+    .connection-section button:last-child {
+      background: #dc3545;
+      margin-left: 5px;
+    }
+
+    .connection-section button:last-child:hover {
+      background: #c82333;
+    }
+
+    .status {
+      padding: 10px 20px;
+      background: #e9ecef;
+      font-size: 13px;
+      color: #495057;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #dc3545;
+    }
+
+    .status-dot.online {
+      background: #28a745;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #f8f9fa;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 70%;
+      word-wrap: break-word;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.sent {
+      background: #667eea;
+      color: white;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .message.received {
+      background: white;
+      color: #333;
+      border: 1px solid #dee2e6;
+    }
+
+    .message-info {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 5px;
+    }
+
+    .message-content {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .input-area {
+      padding: 20px;
+      background: white;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      gap: 10px;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 25px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.3s;
+    }
+
+    .input-area input:focus {
+      border-color: #667eea;
+    }
+
+    .input-area button {
+      padding: 12px 30px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .input-area button:hover {
+      background: #5568d3;
+      transform: scale(1.05);
+    }
+
+    .system-message {
+      text-align: center;
+      color: #6c757d;
+      font-size: 12px;
+      margin: 10px 0;
+      font-style: italic;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <h2>Socket.io Test</h2>
-  
-  <input id="token" placeholder="Paste JWT token" style="width:400px"/><br/>
-  <button onclick="connect()">Connect</button>
-  <hr/>
-  
-  <input id="receiverId" placeholder="Receiver ID"/>
-  <input id="message" placeholder="Message"/>
-  <button onclick="sendMsg()">Send</button>
-  <hr/>
-  
-  <div id="log"></div>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Real-Time Chat Test</h1>
+      <p>Socket.io + Node.js Backend</p>
+    </div>
+
+    <div class="connection-section">
+      <input id="token" type="text" placeholder="Paste your JWT token here..." />
+      <button onclick="connect()">Connect</button>
+      <button onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="status">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Disconnected</span>
+      </div>
+      <div>
+        <span id="myUserId" style="font-weight: bold;"></span>
+        <span id="onlineCount" style="margin-left: 15px;">Online: 0</span>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="chat-area">
+        <div class="messages" id="messages">
+          <div class="system-message">Enter your token and click Connect to start chatting</div>
+        </div>
+
+        <div class="input-area">
+          <input id="receiverId" type="text" placeholder="Receiver ID..." />
+          <input id="messageInput" type="text" placeholder="Type a message..." onkeypress="handleKeyPress(event)" />
+          <button onclick="sendMsg()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     let socket;
-    
+    let myUserId;
+
     function connect() {
       const token = document.getElementById('token').value;
+      if (!token) {
+        alert('Please enter a token!');
+        return;
+      }
+
+      // Disconnect existing connection if any
+      if (socket) {
+        socket.disconnect();
+      }
+
+      console.log('🔌 Attempting to connect with token:', token.substring(0, 20) + '...');
+
       socket = io('http://localhost:3000', {
-        auth: { token }
+        auth: { token },
+        forceNew: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5
       });
-      
-      socket.on('connect', () => log('✅ Connected!'));
-      socket.on('onlineUsers', (users) => log('Online users: ' + users));
-      socket.on('receiveMessage', (msg) => log('📩 Received: ' + JSON.stringify(msg)));
-      socket.on('messageSent', (msg) => log('✅ Sent: ' + JSON.stringify(msg)));
-      socket.on('error', (err) => log('❌ Error: ' + err.message));
+
+      // DEBUG: Log ALL events received
+      socket.onAny((eventName, ...args) => {
+        console.log(`🔔 Event received: ${eventName}`, args);
+      });
+
+      socket.on('connect', () => {
+        console.log('✅ Socket connected! Socket ID:', socket.id);
+        updateStatus(true, 'Connected');
+        addSystemMessage('✅ Connected to server (Socket ID: ' + socket.id + ')');
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
+        addSystemMessage('❌ Connection error: ' + error.message);
+        updateStatus(false, 'Connection Error');
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('❌ Disconnected:', reason);
+        updateStatus(false, 'Disconnected');
+        addSystemMessage('❌ Disconnected: ' + reason);
+      });
+
+      socket.on('onlineUsers', (users) => {
+        console.log('👥 Online users:', users);
+        document.getElementById('onlineCount').textContent = `Online: ${users.length}`;
+        addSystemMessage(`👥 ${users.length} user(s) online: ${users.join(', ')}`);
+      });
+
+      socket.on('receiveMessage', (msg) => {
+        console.log('📩 Received message:', msg);
+        const senderName = msg.sender?.username || msg.sender;
+        addMessage(msg.content, 'received', senderName);
+      });
+
+      socket.on('messageSent', (msg) => {
+        console.log('✅ Message sent:', msg);
+        addMessage(msg.content, 'sent', 'You');
+        document.getElementById('messageInput').value = '';
+        
+        // Store my user ID
+        if (!myUserId) {
+          myUserId = msg.sender;
+          document.getElementById('myUserId').textContent = `My ID: ${myUserId}`;
+        }
+      });
+
+      socket.on('userOnline', (userId) => {
+        console.log('🟢 User online:', userId);
+        addSystemMessage(`🟢 User ${userId} came online`);
+      });
+
+      socket.on('userOffline', (userId) => {
+        console.log('🔴 User offline:', userId);
+        addSystemMessage(`🔴 User ${userId} went offline`);
+      });
+
+      socket.on('error', (err) => {
+        console.error('❌ Socket error:', err);
+        addSystemMessage(`❌ Error: ${err.message}`);
+      });
     }
-    
+
+    function disconnect() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+        updateStatus(false, 'Disconnected');
+        addSystemMessage('🔌 Manually disconnected');
+      }
+    }
+
     function sendMsg() {
       const receiverId = document.getElementById('receiverId').value;
-      const content = document.getElementById('message').value;
+      const content = document.getElementById('messageInput').value;
+
+      if (!socket || !socket.connected) {
+        alert('Please connect first!');
+        return;
+      }
+
+      if (!receiverId || !content) {
+        alert('Please enter receiver ID and message!');
+        return;
+      }
+
+      console.log('📤 Sending message to:', receiverId, 'Content:', content);
       socket.emit('sendMessage', { receiverId, content });
     }
-    
-    function log(msg) {
-      document.getElementById('log').innerHTML += msg + '<br/>';
+
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        sendMsg();
+      }
     }
+
+    function addMessage(content, type, sender) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      
+      const now = new Date().toLocaleTimeString();
+      messageDiv.innerHTML = `
+        <div class="message-content">${content}</div>
+        <div class="message-info">${sender} • ${now}</div>
+      `;
+      
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function addSystemMessage(text) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'system-message';
+      const now = new Date().toLocaleTimeString();
+      messageDiv.textContent = `[${now}] ${text}`;
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function updateStatus(isOnline, text) {
+      const dot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      
+      if (isOnline) {
+        dot.classList.add('online');
+      } else {
+        dot.classList.remove('online');
+      }
+      
+      statusText.textContent = text;
+    }
+
+    // Log when page loads
+    console.log('📄 Page loaded, ready to connect');
   </script>
 </body>
 </html>
